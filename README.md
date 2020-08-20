@@ -1,5 +1,3 @@
-# SP1649-2020
-Repositorio del curso Tópicos de Estadística Espacial de Jesús Guzmán
 <figure>
   <img src="Votacion.png" width="50%">
 </figure>
