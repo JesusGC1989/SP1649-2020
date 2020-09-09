@@ -1,0 +1,453 @@
+---
+title: "Laboratorio 1"
+subtitle: "Tópicos de Estadística Espacial"
+author: "Jesús Guzmán Castillo"
+date: "27/8/2020"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+---
+# **Sección 1.3**
+## Pregunta 1
+Read the shapefile storms_xyz_feature from the shape directory in the sf package
+
+```{r}
+library (sf)
+storm = st_read(system.file("shape/storms_xyz_feature.shp", package="sf"), crs = 4267)
+storm
+save.image(file = "storm.RData")
+
+```
+## Pregunta 2
+
+Copy this file to another directory on your computer, and read it from there (note: a shapefile consists of more than one file!)
+
+```{r}
+#write( storm, file = "storm.RData")
+#load("storm.RData")
+```
+
+## Pregunta 3
+
+How many features does this dataset contain?
+```{r}
+storm
+```
+El dataset contiene unicamente lineas. 
+
+## Pregunta 4
+
+Plot the dataset, with axes = TRUE (hint: before plotting, pipe through st_zm to drop Z and M coordinates; more about this in chapter 3).
+
+```{r}
+library (dplyr)
+storm %>% st_transform(4326) %>% st_zm() -> st1
+st1 %>% plot(graticule = TRUE, axes = TRUE)
+
+```
+
+```{r}
+suppressPackageStartupMessages(library(mapview))
+st1 %>% mapview(legend = TRUE, col.regions = sf.colors)
+```
+
+
+
+
+# **Sección 2.6**
+
+## Pregunta 1
+
+Convert the (x,y) (x,y) points  (10,2),  (−10,−2),  (10,−2) and (0,10) to polar coordinates
+
+```{r}
+rho1<-sqrt(10^2+2^2)
+rho2<-sqrt(10^2+2^2)
+rho3<-sqrt(10^2+2^2)
+rho4<-sqrt(0+10^2)
+theta1<-atan2(2,10)
+theta2<-atan2(-2,-10)
+theta3<-atan2(-2,10)
+theta4<-atan2(10,0)
+
+(p1<-c(rho1,theta1))
+(p2<-c(rho2,theta2))
+(p3<-c(rho3,theta3))
+(p4<-c(rho4,theta4))
+
+```
+
+
+## Pregunta 2
+Convert the polar (r,ϕ)  points  (10,45∘) , (0,100∘) ) and  (5,359∘)  to Cartesian coordinates
+```{r}
+x1=10*cos((45*pi)/180)
+y1=10*sin((45*pi)/180)
+
+x2=0*cos((100*pi)/180)
+y2=0*sin((100*pi)/180)
+
+x3=5*cos((359*pi)/180)
+y3=5*sin((359*pi)/180)
+
+(p1<-c(x1,y1))
+(p2<-c(x2,y2))
+(p3<-c(x3,y3))
+
+
+```
+
+
+## Pregunta 3
+
+Assuming the Earth is a sphere with a radius of 6371 km, compute for   (λ,ϕ)  points the great circle distance between   ( 10 , 10 )   and   (11,10) , between(10,80)  and (11,80), between (10,10)  and (10,11)  and between (10,80)  and (10,81)  (units: degree). What are the distance units?
+
+```{r}
+x<-c(10,11,10,11,10,10,10,10)
+y<-c(10,10,80,80,10,11,80,81)
+
+xi<-(x*pi)/180
+yi<-(y*pi)/180
+r<-6371
+d1<-acos(sin(yi[1])*sin(yi[2])+cos(yi[1])*cos(yi[2])*cos(abs(xi[1]-xi[2])))
+
+(d1<-d1*r)
+
+d2<-acos(sin(yi[3])*sin(yi[4])+cos(yi[3])*cos(yi[4])*cos(abs(xi[3]-xi[4])))
+
+(d2<-d2*r)
+
+d3<-acos(sin(yi[5])*sin(yi[6])+cos(yi[5])*cos(yi[6])*cos(abs(xi[5]-xi[6])))
+
+(d3<-d3*r)
+
+d4<-acos(sin(yi[7])*sin(yi[8])+cos(yi[7])*cos(yi[8])*cos(abs(xi[7]-xi[8])))
+
+(d4<-d4*r)
+
+
+
+
+```
+
+# **Sección 4.4**
+
+## Pregunta 1
+NDVI, normalized differenced vegetation index, is computed as (NIR-R)/(NIR+R), with NIR the near infrared and R the red band. Read the L7_ETMs.tif file into object x, and distribute the band dimensions over attributes by split(x, "band"). Then, compute NDVI by using an expression that uses the NIR (band 4) and R (band 3) attributes directly.
+
+```{r}
+tif = system.file("tif/L7_ETMs.tif", package = "stars")
+library(stars)
+x = read_stars(tif)
+split(x, "band")
+ndvi = function(x) (x[4]-x[3])/(x[4]+x[3])
+st_apply(x, c("x","y"), ndvi)
+x
+plot(x)
+
+```
+
+## Pregunta 2
+
+Compute NDVI for the S2 image, using st_apply and an a function ndvi = function(x) (x[4]-x[3])/(x[4]+x[3]). Plot the result, and write the result to a GeoTIFF. Explain the difference in runtime between plotting and writing.
+
+```{r}
+granule = system.file("sentinel/S2A_MSIL1C_20180220T105051_N0206_R051_T32ULE_20180221T134037.zip", package = "starsdata")
+file.size(granule)
+
+base_name = strsplit(basename(granule), ".zip")[[1]]
+s2 = paste0("SENTINEL2_L1C:/vsizip/", granule, "/", base_name, ".SAFE/MTD_MSIL1C.xml:10m:EPSG_32632")
+(p = read_stars(s2, proxy = TRUE))
+s3 = st_apply(p, c("x", "y"), ndvi)
+plot (s3)
+
+
+```
+
+```{r, cache =TRUE}
+tf = tempfile(fileext=".tif")
+write_stars(s3, tf)
+
+```
+
+
+## Pregunta 3
+
+Use st_transform to transform the stars object read from L7_ETMs.tif to EPSG 4326. Print the object. Is this a regular grid? Plot the first band using arguments axes=TRUE and border=NA, and explain why this takes such a long time.
+
+```{r}
+x %>% st_transform(4326)->x1
+print(x1)
+plot(x1[,,,1], axes=TRUE, border= NA)
+```
+
+## Pregunta 4
+
+Use st_warp to warp the L7_ETMs.tif object to EPSG 4326, and plot the resulting object with axes=TRUE. Why is the plot created much faster than after st_transform?
+
+```{r}
+
+st_crs(4326)->y1
+x2 = st_warp(x, crs = y1)
+plot (x2[,,,1])
+```
+
+
+# **Sección 6.6**
+
+## Pregunta 1
+Add a variable to the nc dataset by nc$State = "North Carolina". Which value should you attach to this variable for the attribute-geometry relationship (agr)?
+
+```{r}
+nc <- system.file("gpkg/nc.gpkg", package="sf") %>%
+    read_sf() %>%
+    st_transform(4326)
+nc$STATE= "North Carolina"
+
+nc1 <- nc %>%
+    st_set_agr(c(NAME = "Identity", STATE = "identity"))
+```
+
+## Pregunta 2
+
+Create a new sf object from the geometry obtained by st_union(nc), and assign "North Carolina" to the variable State. Which agr can you now assign to this attribute variable?
+
+```{r}
+nc%>% st_union(by_feature = F)->nc2
+nc2
+class (nc2)
+plot(nc2)
+
+```
+
+## Pregunta 3
+
+Use st_area to add a variable with name area to nc. Compare the area and AREA variables in the nc dataset. What are the units of AREA? Are the two linearly related? If there are discrepancies, what could be the cause?
+
+```{r}
+nc$area<-st_area(nc)
+View(cbind(nc$AREA, nc$area))
+```
+
+## Pregunta 4
+
+Is the area variable intensive or extensive? Is its agr equal to constant, identity or aggregate?
+
+Es extensiva, no está truncado el número. Es agregada. 
+
+## Pregunta 5
+
+Find the name of the county that contains POINT(-78.34046 35.017)
+
+```{r}
+library (stars)
+library (sf)
+p <- st_as_sf(data.frame(city = c("a"),
+           lat = c(35.017),
+           lon = c(-78.34046)), coords = c("lon", "lat"), crs = 4326)
+
+a<-st_point(c(-78.34046,35.017))
+c<-st_contains(nc, p)
+c <- summary(c) 
+c1 <- as.numeric( c[,1])
+pos <- which( c1==1 )
+nc$NAME[pos]
+```
+
+## Pregunta 6
+
+Find the names of all counties with boundaries that touch county Sampson.
+```{r}
+Sampson<-nc$geom[pos]
+d<-st_intersects(nc, Sampson)
+d <- summary(d) 
+d1 <- as.numeric( d[,1])
+pos1 <- which( d1==1 )
+nc$NAME[pos1]
+
+```
+
+## Pregunta 7
+List the names of all counties that are less than 50 km away from county Sampson.
+
+```{r}
+e<-st_is_within_distance(nc,Sampson,50000)
+e <- summary(e) 
+e1 <- as.numeric( e[,1])
+pos2 <- which( e1==1 )
+nc$NAME[pos2]
+
+
+```
+
+# **Sección 8**
+
+```{r}
+library(sf)
+library(raster)
+library(dplyr)
+library(spData)
+library(spDataLarge)
+library(tmap)
+library(leaflet) 
+library(ggplot2) 
+
+africa = world %>% 
+  filter(continent == "Africa", !is.na(iso_a2)) %>% 
+  left_join(worldbank_df, by = "iso_a2") %>% 
+  dplyr::select(name, subregion, gdpPercap, HDI, pop_growth) %>% 
+  st_transform("+proj=aea +lat_1=20 +lat_2=-23 +lat_0=0 +lon_0=25")
+
+zion = st_read((system.file("vector/zion.gpkg", package = "spDataLarge")))
+data(nlcd, package = "spDataLarge")
+```
+## Pregunta 1
+
+Create a map showing the geographic distribution of the Human Development Index (HDI) across Africa with base graphics (hint: use plot()) and tmap packages (hint: use tm_shape(africa) + ...).
+Name two advantages of each based on the experience.
+Name three other mapping packages and an advantage of each.
+Bonus: create three more maps of Africa using these three packages.
+
+```{r}
+
+
+tm_shape(africa) +
+  tm_fill() 
+# Add border layer to nz shape
+tm_shape(africa) +
+  tm_borders() 
+# Add fill and border layers to nz shape
+tm_shape(africa) +
+  tm_fill() +
+  tm_borders() 
+```
+```{r}
+map_af = tm_shape(africa) + tm_polygons()
+map_af1 = map_af +
+  tm_shape(africa) +tm_fill(col="HDI", palette = "Greens")
+map_af1
+
+```
+
+```{r}
+world_africa  = world %>% 
+  filter(continent == "Africa", !is.na(iso_a2)) %>% 
+  left_join(worldbank_df, by = "iso_a2") %>% 
+  dplyr::select(HDI) 
+
+plot(world_africa)
+
+```
+
+
+
+## Pregunta 2
+Extend the tmap created for the previous exercise so the legend has three bins: “High” (HDI above 0.7), “Medium” (HDI between 0.55 and 0.7) and “Low” (HDI below 0.55).
+Bonus: improve the map aesthetics, for example by changing the legend title, class labels and color palette.
+
+```{r}
+breaks = c(0, 0.55, 0.7, 10) 
+map_af3<-tm_shape(africa) + tm_polygons(col = "HDI", breaks = breaks,labels=c("Low","Medium","High")
+)
+map_af3
+```
+
+## Pregunta 3
+
+Represent africa’s subregions on the map. Change the default color palette and legend title. Next, combine this map and the map created in the previous exercise into a single plot.
+
+```{r}
+map_af4 = tm_shape(africa) + tm_polygons()
+map_af5 = map_af4 +
+  tm_shape(africa) +tm_fill(col="subregion", palette = "Reds") + tm_polygons()
+
+tmap_arrange(map_af3, map_af5)
+```
+
+## Pregunta 4
+Create a land cover map of the Zion National Park.
+Change the default colors to match your perception of the land cover categories
+Add a scale bar and north arrow and change the position of both to improve the map’s aesthetic appeal
+Bonus: Add an inset map of Zion National Park’s location in the context of the Utah state. (Hint: an object representing Utah can be subset from the us_states dataset.)
+
+```{r}
+srtm_masked = mask(nlcd, zion)
+plot (srtm_masked)
+
+```
+
+## Pregunta 5
+
+Create facet maps of countries in Eastern Africa:
+With one facet showing HDI and the other representing population growth (hint: using variables HDI and pop_growth, respectively) With a ‘small multiple’ per country
+
+```{r}
+library (dplyr)
+library (sf)
+library (tmap)
+africa1 = africa %>% 
+  filter(subregion=="Eastern Africa")
+
+map1<-tm_shape(africa) +
+  tm_polygons() +
+  tm_shape(africa1) +
+  tm_symbols(col = "black", border.col = "white", size = "HDI") +
+  tm_facets(by = "subregion", nrow = 2, free.coords = FALSE)
+
+map2<-tm_shape(africa) +
+  tm_polygons() +
+  tm_shape(africa1) +
+  tm_symbols(col = "red", border.col = "white", size = "pop_growth", shape=8 ) +
+  tm_facets(by = "subregion", nrow = 2, free.coords = FALSE)
+
+tmap_arrange(map1, map2)
+
+```
+
+## Pregunta 6
+
+Building on the previous facet map examples, create animated maps of East Africa:
+Showing first the spatial distribution of HDI scores then population growth
+Showing each country in order
+
+```{r}
+map3<-tm_shape(africa) +
+  tm_polygons() +
+  tm_shape(africa1) +
+  tm_symbols(col = "black", border.col = "white", size = "HDI")+
+  tm_facets(along= "name", by = "subregion", nrow = 2, free.coords = FALSE)+
+  tm_shape(africa1) +
+  tm_symbols(col = "black", border.col = "white", size = "pop_growth")+
+  tm_facets(along= "name", by = "subregion", nrow = 2, free.coords = FALSE)
+
+map3
+
+#tmap_animation(map3, filename = "mapa.gif", delay = 25)
+```
+
+## Pregunta 7
+
+Create an interactive map of Africa:
+With tmap
+With mapview
+With leaflet
+Bonus: For each approach, add a legend (if not automatically provided) and a scale bar
+
+```{r}
+tmap_mode("view")
+map_af3
+```
+
+
+```{r}
+library(mapview)
+africa %>% mapview(legend = TRUE)
+```
+
+```{r}
+
+```
+
+

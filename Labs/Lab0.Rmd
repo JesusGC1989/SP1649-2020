@@ -1,0 +1,8 @@
+---
+title: "Laboratorio 0"
+author: "Jesús Guzmán Castillo"
+date: "20/8/2020"
+output: github_document
+---
+
+![](C:\Users\Jesus\Documents\GitHub\SP1649-2020\Imagenes\Lab0.png)
