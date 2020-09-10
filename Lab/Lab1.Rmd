@@ -3,18 +3,19 @@ title: "Laboratorio 1"
 subtitle: "Tópicos de Estadística Espacial"
 author: "Jesús Guzmán Castillo"
 date: "27/8/2020"
-output:
-  html_document:
-    toc: yes
-    toc_float: yes
-    toc_depth: 2
+output: github_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, comment = NA, fig.width = 15, fig.height = 10, cache = T, fig.align = "center")
+```
+
 # **Sección 1.3**
 ## Pregunta 1
 Read the shapefile storms_xyz_feature from the shape directory in the sf package
 
-```{r}
-library (sf)
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
+library (stars)
 storm = st_read(system.file("shape/storms_xyz_feature.shp", package="sf"), crs = 4267)
 storm
 save.image(file = "storm.RData")
@@ -24,7 +25,7 @@ save.image(file = "storm.RData")
 
 Copy this file to another directory on your computer, and read it from there (note: a shapefile consists of more than one file!)
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 #write( storm, file = "storm.RData")
 #load("storm.RData")
 ```
@@ -32,23 +33,23 @@ Copy this file to another directory on your computer, and read it from there (no
 ## Pregunta 3
 
 How many features does this dataset contain?
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 storm
 ```
-El dataset contiene unicamente lineas. 
+El dataset contiene unicamente lineas. En este caso, al ser un archivo sobre la trayectoria de las tormentas, se trata de un solo tipo de geometría, que son líneas. 
 
 ## Pregunta 4
 
 Plot the dataset, with axes = TRUE (hint: before plotting, pipe through st_zm to drop Z and M coordinates; more about this in chapter 3).
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 library (dplyr)
 storm %>% st_transform(4326) %>% st_zm() -> st1
 st1 %>% plot(graticule = TRUE, axes = TRUE)
 
 ```
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 suppressPackageStartupMessages(library(mapview))
 st1 %>% mapview(legend = TRUE, col.regions = sf.colors)
 ```
@@ -62,7 +63,7 @@ st1 %>% mapview(legend = TRUE, col.regions = sf.colors)
 
 Convert the (x,y) (x,y) points  (10,2),  (−10,−2),  (10,−2) and (0,10) to polar coordinates
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 rho1<-sqrt(10^2+2^2)
 rho2<-sqrt(10^2+2^2)
 rho3<-sqrt(10^2+2^2)
@@ -77,12 +78,15 @@ theta4<-atan2(10,0)
 (p3<-c(rho3,theta3))
 (p4<-c(rho4,theta4))
 
+
+
+
 ```
 
 
 ## Pregunta 2
 Convert the polar (r,ϕ)  points  (10,45∘) , (0,100∘) ) and  (5,359∘)  to Cartesian coordinates
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 x1=10*cos((45*pi)/180)
 y1=10*sin((45*pi)/180)
 
@@ -104,7 +108,7 @@ y3=5*sin((359*pi)/180)
 
 Assuming the Earth is a sphere with a radius of 6371 km, compute for   (λ,ϕ)  points the great circle distance between   ( 10 , 10 )   and   (11,10) , between(10,80)  and (11,80), between (10,10)  and (10,11)  and between (10,80)  and (10,81)  (units: degree). What are the distance units?
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 x<-c(10,11,10,11,10,10,10,10)
 y<-c(10,10,80,80,10,11,80,81)
 
@@ -131,21 +135,20 @@ d4<-acos(sin(yi[7])*sin(yi[8])+cos(yi[7])*cos(yi[8])*cos(abs(xi[7]-xi[8])))
 
 
 ```
+La unidad de distancia son kilómetros
 
 # **Sección 4.4**
 
 ## Pregunta 1
 NDVI, normalized differenced vegetation index, is computed as (NIR-R)/(NIR+R), with NIR the near infrared and R the red band. Read the L7_ETMs.tif file into object x, and distribute the band dimensions over attributes by split(x, "band"). Then, compute NDVI by using an expression that uses the NIR (band 4) and R (band 3) attributes directly.
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 tif = system.file("tif/L7_ETMs.tif", package = "stars")
 library(stars)
 x = read_stars(tif)
 split(x, "band")
 ndvi = function(x) (x[4]-x[3])/(x[4]+x[3])
 st_apply(x, c("x","y"), ndvi)
-x
-plot(x)
 
 ```
 
@@ -153,7 +156,7 @@ plot(x)
 
 Compute NDVI for the S2 image, using st_apply and an a function ndvi = function(x) (x[4]-x[3])/(x[4]+x[3]). Plot the result, and write the result to a GeoTIFF. Explain the difference in runtime between plotting and writing.
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 granule = system.file("sentinel/S2A_MSIL1C_20180220T105051_N0206_R051_T32ULE_20180221T134037.zip", package = "starsdata")
 file.size(granule)
 
@@ -166,70 +169,75 @@ plot (s3)
 
 ```
 
-```{r, cache =TRUE}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 tf = tempfile(fileext=".tif")
 write_stars(s3, tf)
 
 ```
 
+La diferencia es que plotting genera la representación gráfica del raster, y el writing escribe esa representación gráfica en la memoria de la computadora.
 
 ## Pregunta 3
 
 Use st_transform to transform the stars object read from L7_ETMs.tif to EPSG 4326. Print the object. Is this a regular grid? Plot the first band using arguments axes=TRUE and border=NA, and explain why this takes such a long time.
 
-```{r}
+```{r, cache = TRUE}
 x %>% st_transform(4326)->x1
-print(x1)
 plot(x1[,,,1], axes=TRUE, border= NA)
 ```
+
+En este caso se dura mucho pues debe de obtener los datos de la base de datos, es decir debe realizar un cálculo de los datos y readecuarlos para hacer el mapa.
 
 ## Pregunta 4
 
 Use st_warp to warp the L7_ETMs.tif object to EPSG 4326, and plot the resulting object with axes=TRUE. Why is the plot created much faster than after st_transform?
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 
 st_crs(4326)->y1
 x2 = st_warp(x, crs = y1)
 plot (x2[,,,1])
 ```
-
+Este gráfico es más rápido pues primero se hace la transformación y luego se hace el gráfico. Al hacer el gráfico no se debe de reconfigurar los datos. 
 
 # **Sección 6.6**
 
 ## Pregunta 1
 Add a variable to the nc dataset by nc$State = "North Carolina". Which value should you attach to this variable for the attribute-geometry relationship (agr)?
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 nc <- system.file("gpkg/nc.gpkg", package="sf") %>%
     read_sf() %>%
     st_transform(4326)
 nc$STATE= "North Carolina"
 
 nc1 <- nc %>%
-    st_set_agr(c(NAME = "Identity", STATE = "identity"))
+    st_set_agr(c(NAME = "Identity", STATE = "constant"))
 ```
-
+Se agrega el valor de **constante** pues todos los estados tendrán el mismo valor
 ## Pregunta 2
 
 Create a new sf object from the geometry obtained by st_union(nc), and assign "North Carolina" to the variable State. Which agr can you now assign to this attribute variable?
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 nc%>% st_union(by_feature = F)->nc2
 nc2
 class (nc2)
 plot(nc2)
 
 ```
+Acá sería de tipo "identity" pues es el nombre distintivo del estado que estamos graficando.
 
 ## Pregunta 3
 
 Use st_area to add a variable with name area to nc. Compare the area and AREA variables in the nc dataset. What are the units of AREA? Are the two linearly related? If there are discrepancies, what could be the cause?
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 nc$area<-st_area(nc)
 View(cbind(nc$AREA, nc$area))
 ```
+
+Las discrepancias mostradas son por la escala en que están los datos. En la variable original de la base están en base de km2, mientras que el cálculo lo hace en m2. Además, existe un redondeo en la variable original. 
 
 ## Pregunta 4
 
@@ -241,7 +249,7 @@ Es extensiva, no está truncado el número. Es agregada.
 
 Find the name of the county that contains POINT(-78.34046 35.017)
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 library (stars)
 library (sf)
 p <- st_as_sf(data.frame(city = c("a"),
@@ -249,17 +257,20 @@ p <- st_as_sf(data.frame(city = c("a"),
            lon = c(-78.34046)), coords = c("lon", "lat"), crs = 4326)
 
 a<-st_point(c(-78.34046,35.017))
+
 c<-st_contains(nc, p)
 c <- summary(c) 
 c1 <- as.numeric( c[,1])
 pos <- which( c1==1 )
 nc$NAME[pos]
+
+
 ```
 
 ## Pregunta 6
 
 Find the names of all counties with boundaries that touch county Sampson.
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 Sampson<-nc$geom[pos]
 d<-st_intersects(nc, Sampson)
 d <- summary(d) 
@@ -272,7 +283,7 @@ nc$NAME[pos1]
 ## Pregunta 7
 List the names of all counties that are less than 50 km away from county Sampson.
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 e<-st_is_within_distance(nc,Sampson,50000)
 e <- summary(e) 
 e1 <- as.numeric( e[,1])
@@ -284,7 +295,7 @@ nc$NAME[pos2]
 
 # **Sección 8**
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 library(sf)
 library(raster)
 library(dplyr)
@@ -310,7 +321,7 @@ Name two advantages of each based on the experience.
 Name three other mapping packages and an advantage of each.
 Bonus: create three more maps of Africa using these three packages.
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 
 
 tm_shape(africa) +
@@ -323,7 +334,7 @@ tm_shape(africa) +
   tm_fill() +
   tm_borders() 
 ```
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 map_af = tm_shape(africa) + tm_polygons()
 map_af1 = map_af +
   tm_shape(africa) +tm_fill(col="HDI", palette = "Greens")
@@ -331,7 +342,7 @@ map_af1
 
 ```
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 world_africa  = world %>% 
   filter(continent == "Africa", !is.na(iso_a2)) %>% 
   left_join(worldbank_df, by = "iso_a2") %>% 
@@ -341,16 +352,17 @@ plot(world_africa)
 
 ```
 
+Las ventajas de tmap es que se pueden agregar más capaz y el cambio de los colores se puede hacer más fácilmente usando las paletas de Rcolorbrewer. En el caso del plot, la ventaja es que es más fácil hacer gráficos sencillos, además que la función plot reconoce de manera inmediata el tipo de gráfico que debe realizarse, según los datos que se le dan. 
+Otras librerias para hacer mapas son *ggplot*, *cowplot* y *googleway*
 
 
 ## Pregunta 2
 Extend the tmap created for the previous exercise so the legend has three bins: “High” (HDI above 0.7), “Medium” (HDI between 0.55 and 0.7) and “Low” (HDI below 0.55).
 Bonus: improve the map aesthetics, for example by changing the legend title, class labels and color palette.
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 breaks = c(0, 0.55, 0.7, 10) 
-map_af3<-tm_shape(africa) + tm_polygons(col = "HDI", breaks = breaks,labels=c("Low","Medium","High")
-)
+map_af3<-tm_shape(africa) + tm_polygons(col = "HDI", breaks = breaks,labels=c("Low","Medium","High"), palette="Blues")  + tm_layout(title= "HDI Africa", bg.color = "lightblue", legend.outside = T, legend.outside.position = "left")
 map_af3
 ```
 
@@ -358,10 +370,10 @@ map_af3
 
 Represent africa’s subregions on the map. Change the default color palette and legend title. Next, combine this map and the map created in the previous exercise into a single plot.
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 map_af4 = tm_shape(africa) + tm_polygons()
 map_af5 = map_af4 +
-  tm_shape(africa) +tm_fill(col="subregion", palette = "Reds") + tm_polygons()
+  tm_shape(africa) +tm_fill(col="subregion", palette = "Reds") + tm_polygons() +tm_layout(title= "Subregiones de africa", bg.color = "lightblue", legend.outside = T, legend.outside.position = "left")
 
 tmap_arrange(map_af3, map_af5)
 ```
@@ -372,10 +384,15 @@ Change the default colors to match your perception of the land cover categories
 Add a scale bar and north arrow and change the position of both to improve the map’s aesthetic appeal
 Bonus: Add an inset map of Zion National Park’s location in the context of the Utah state. (Hint: an object representing Utah can be subset from the us_states dataset.)
 
-```{r}
-srtm_masked = mask(nlcd, zion)
-plot (srtm_masked)
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
+nlcd_masked = mask(nlcd, zion)
+plot (nlcd_masked)
 
+map_zion1 = tm_shape(zion) + tm_polygons() + tm_compass(type = "8star", position = c("right", "top")) 
+map_zion1
+
+map_zion2<-map_zion1+tm_polygons(col="nlcd_masked")
+map_zion2
 ```
 
 ## Pregunta 5
@@ -383,7 +400,7 @@ plot (srtm_masked)
 Create facet maps of countries in Eastern Africa:
 With one facet showing HDI and the other representing population growth (hint: using variables HDI and pop_growth, respectively) With a ‘small multiple’ per country
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 library (dplyr)
 library (sf)
 library (tmap)
@@ -412,7 +429,7 @@ Building on the previous facet map examples, create animated maps of East Africa
 Showing first the spatial distribution of HDI scores then population growth
 Showing each country in order
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 map3<-tm_shape(africa) +
   tm_polygons() +
   tm_shape(africa1) +
@@ -426,6 +443,7 @@ map3
 
 #tmap_animation(map3, filename = "mapa.gif", delay = 25)
 ```
+En mi caso sale un error al pedirle el gift. Pide tener  un programa  instalado, lo instalé siguiendo las instrucciones y continua con el error. 
 
 ## Pregunta 7
 
@@ -435,19 +453,17 @@ With mapview
 With leaflet
 Bonus: For each approach, add a legend (if not automatically provided) and a scale bar
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
+library(tmap)
 tmap_mode("view")
 map_af3
 ```
 
 
-```{r}
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
 library(mapview)
 africa %>% mapview(legend = TRUE)
 ```
 
-```{r}
-
-```
 
 
