@@ -1,0 +1,13 @@
+base
+abind
+sf
+stars
+dplyr
+mapview
+sp
+raster
+spData
+spDataLarge
+tmap
+leaflet
+ggplot2
