@@ -1,0 +1,11 @@
+base
+sp
+spatstat.data
+nlme
+rpart
+spatstat
+raster
+maptools
+plotrix
+rgeos
+readr
