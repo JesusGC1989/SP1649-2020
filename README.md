@@ -26,7 +26,7 @@
   </tr>
     <tr>
     <td width="15%"> 27.10.2020 </td>
-    <td width="25%">  <a href="Proyecto/Anteproyecto2-.pdf">Avance 2</a> </td>
+    <td width="25%">  <a href="Proyecto/Anteproyecto2 -.pdf">Avance 2</a> </td>
   </tr>
   
   
