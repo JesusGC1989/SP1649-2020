@@ -1,0 +1,322 @@
+---
+title: "Laboratorio 3"
+author: "Jesús Guzmán Castillo"
+date: "24/9/2020"
+output: html_document
+---
+
+# Cargar la base de datos
+```{r}
+if (!require("rspatial")) devtools::install_github('rspatial/rspatial')
+library(rspatial)
+d <- sp_data('precipitation')
+head(d)
+```
+
+```{r}
+d$prec <- rowSums(d[, c(6:17)])
+plot(sort(d$prec), ylab='Annual precipitation (mm)', las=1, xlab='Stations')
+```
+
+```{r}
+library(sp)
+dsp <- SpatialPoints(d[,4:3], proj4string=CRS("+proj=longlat +datum=NAD83"))
+dsp <- SpatialPointsDataFrame(dsp, d)
+CA <- sp_data("counties")
+# define groups for mapping
+cuts <- c(0,200,300,500,1000,3000)
+# set up a palette of interpolated colors
+blues <- colorRampPalette(c('yellow', 'orange', 'blue', 'dark blue'))
+pols <- list("sp.polygons", CA, fill = "lightgray")
+spplot(dsp, 'prec', cuts=cuts, col.regions=blues(5), sp.layout=pols, pch=20, cex=2)
+```
+
+```{r}
+TA <- CRS("+proj=aea +lat_1=34 +lat_2=40.5 +lat_0=0 +lon_0=-120 +x_0=0 +y_0=-4000000 +datum=NAD83 +units=m +ellps=GRS80 +towgs84=0,0,0")
+library(rgdal)
+dta <- spTransform(dsp, TA)
+cata <- spTransform(CA, TA)
+```
+
+```{r}
+RMSE <- function(observed, predicted) {
+  sqrt(mean((predicted - observed)^2, na.rm=TRUE))
+}
+
+null <- RMSE(mean(dsp$prec), dsp$prec)
+null
+
+
+```
+
+```{r}
+library(dismo)
+v <- voronoi(dta)
+plot(v)
+```
+
+```{r}
+ca <- aggregate(cata)
+vca <- intersect(v, ca)
+spplot(vca, 'prec', col.regions=rev(get_col_regions()))
+```
+
+```{r}
+r <- raster(cata, res=10000)
+vr <- rasterize(vca, r, 'prec')
+plot(vr)
+```
+
+```{r}
+set.seed(5132015)
+kf <- kfold(nrow(dta))
+rmse <- rep(NA, 5)
+for (k in 1:5) {
+  test <- dta[kf == k, ]
+  train <- dta[kf != k, ]
+  v <- voronoi(train)
+  p <- extract(v, test)
+  rmse[k] <- RMSE(test$prec, p$prec)
+}
+rmse
+mean(rmse)
+1 - (mean(rmse) / null)
+
+```
+
+```{r}
+library(gstat)
+gs <- gstat(formula=prec~1, locations=dta, nmax=5, set=list(idp = 0))
+nn <- interpolate(r, gs)
+## [inverse distance weighted interpolation]
+nnmsk <- mask(nn, vr)
+plot(nnmsk)
+```
+
+```{r}
+rmsenn <- rep(NA, 5)
+for (k in 1:5) {
+  test <- dta[kf == k, ]
+  train <- dta[kf != k, ]
+  gscv <- gstat(formula=prec~1, locations=train, nmax=5, set=list(idp = 0))
+  p <- predict(gscv, test)$var1.pred
+  rmsenn[k] <- RMSE(test$prec, p)
+}
+## [inverse distance weighted interpolation]
+## [inverse distance weighted interpolation]
+## [inverse distance weighted interpolation]
+## [inverse distance weighted interpolation]
+## [inverse distance weighted interpolation]
+rmsenn
+## [1] 200.6222 190.8336 180.3833 169.9658 237.9067
+mean(rmsenn)
+## [1] 195.9423
+1 - (mean(rmsenn) / null)
+## [1] 0.5498908
+```
+
+```{r}
+library(gstat)
+gs <- gstat(formula=prec~1, locations=dta)
+idw <- interpolate(r, gs)
+## [inverse distance weighted interpolation]
+idwr <- mask(idw, vr)
+plot(idwr)
+```
+
+```{r}
+rmse <- rep(NA, 5)
+for (k in 1:5) {
+  test <- dta[kf == k, ]
+  train <- dta[kf != k, ]
+  gs <- gstat(formula=prec~1, locations=train)
+  p <- predict(gs, test)
+  rmse[k] <- RMSE(test$prec, p$var1.pred)
+}
+## [inverse distance weighted interpolation]
+## [inverse distance weighted interpolation]
+## [inverse distance weighted interpolation]
+## [inverse distance weighted interpolation]
+## [inverse distance weighted interpolation]
+rmse
+## [1] 215.3319 211.9383 190.0231 211.8308 230.1893
+mean(rmse)
+## [1] 211.8627
+1 - (mean(rmse) / null)
+## [1] 0.5133192
+```
+```{r}
+gs2 <- gstat(formula=prec~1, locations=dta, nmax=1, set=list(idp=1))
+```
+
+# Cargar base de contaminación del aire
+
+```{r}
+library(rspatial)
+x <- sp_data("airqual")
+x$OZDLYAV <- x$OZDLYAV * 1000
+```
+
+```{r}
+library(sp)
+coordinates(x) <- ~LONGITUDE + LATITUDE
+proj4string(x) <- CRS('+proj=longlat +datum=NAD83')
+TA <- CRS("+proj=aea +lat_1=34 +lat_2=40.5 +lat_0=0 +lon_0=-120 +x_0=0 +y_0=-4000000 +datum=NAD83 +units=km +ellps=GRS80")
+library(rgdal)
+aq <- spTransform(x, TA)
+```
+
+```{r}
+cageo <- sp_data('counties.rds')
+ca <- spTransform(cageo, TA)
+r <- raster(ca)
+res(r) <- 10  # 10 km if your CRS's units are in km
+g <- as(r, 'SpatialGrid')
+```
+
+```{r}
+library(gstat)
+gs <- gstat(formula=OZDLYAV~1, locations=aq)
+v <- variogram(gs, width=20)
+head(v)
+##     np      dist    gamma dir.hor dir.ver   id
+## 1 1010  11.35040 34.80579       0       0 var1
+## 2 1806  30.63737 47.52591       0       0 var1
+## 3 2355  50.58656 67.26548       0       0 var1
+## 4 2619  70.10411 80.92707       0       0 var1
+## 5 2967  90.13917 88.93653       0       0 var1
+## 6 3437 110.42302 84.13589       0       0 var1
+plot(v)
+```
+
+```{r}
+fve <- fit.variogram(v, vgm(85, "Exp", 75, 20))
+fve
+##   model    psill    range
+## 1   Nug 21.96600  0.00000
+## 2   Exp 85.52957 72.31404
+plot(variogramLine(fve, 400), type='l', ylim=c(0,120))
+points(v[,2:3], pch=20, col='red')
+```
+
+```{r}
+fvs <- fit.variogram(v, vgm(85, "Sph", 75, 20))
+fvs
+##   model    psill    range
+## 1   Nug 25.57019   0.0000
+## 2   Sph 72.65881 135.7744
+plot(variogramLine(fvs, 400), type='l', ylim=c(0,120) ,col='blue', lwd=2)
+points(v[,2:3], pch=20, col='red')
+```
+
+```{r}
+plot(v, fve)
+```
+
+```{r}
+k <- gstat(formula=OZDLYAV~1, locations=aq, model=fve)
+# predicted values
+kp <- predict(k, g)
+## [using ordinary kriging]
+spplot(kp)
+```
+
+```{r}
+# variance
+ok <- brick(kp)
+ok <- mask(ok, ca)
+names(ok) <- c('prediction', 'variance')
+plot(ok)
+```
+
+```{r}
+library(gstat)
+idm <- gstat(formula=OZDLYAV~1, locations=aq)
+idp <- interpolate(r, idm)
+## [inverse distance weighted interpolation]
+idp <- mask(idp, ca)
+plot(idp)
+```
+
+```{r}
+RMSE <- function(observed, predicted) {
+  sqrt(mean((predicted - observed)^2, na.rm=TRUE))
+}
+f1 <- function(x, test, train) {
+  nmx <- x[1]
+  idp <- x[2]
+  if (nmx < 1) return(Inf)
+  if (idp < .001) return(Inf)
+  m <- gstat(formula=OZDLYAV~1, locations=train, nmax=nmx, set=list(idp=idp))
+  p <- predict(m, newdata=test, debug.level=0)$var1.pred
+  RMSE(test$OZDLYAV, p)
+}
+set.seed(20150518)
+i <- sample(nrow(aq), 0.2 * nrow(aq))
+tst <- aq[i,]
+trn <- aq[-i,]
+opt <- optim(c(8, .5), f1, test=tst, train=trn)
+opt
+```
+
+```{r}
+m <- gstat(formula=OZDLYAV~1, locations=aq, nmax=opt$par[1], set=list(idp=opt$par[2]))
+idw <- interpolate(r, m)
+## [inverse distance weighted interpolation]
+idw <- mask(idw, ca)
+plot(idw)
+```
+
+```{r}
+library(fields)
+m <- Tps(coordinates(aq), aq$OZDLYAV)
+tps <- interpolate(r, m)
+tps <- mask(tps, idw)
+plot(tps)
+```
+
+```{r}
+library(dismo)
+nfolds <- 5
+k <- kfold(aq, nfolds)
+ensrmse <- tpsrmse <- krigrmse <- idwrmse <- rep(NA, 5)
+for (i in 1:nfolds) {
+  test <- aq[k!=i,]
+  train <- aq[k==i,]
+  m <- gstat(formula=OZDLYAV~1, locations=train, nmax=opt$par[1], set=list(idp=opt$par[2]))
+  p1 <- predict(m, newdata=test, debug.level=0)$var1.pred
+  idwrmse[i] <-  RMSE(test$OZDLYAV, p1)
+  m <- gstat(formula=OZDLYAV~1, locations=train, model=fve)
+  p2 <- predict(m, newdata=test, debug.level=0)$var1.pred
+  krigrmse[i] <-  RMSE(test$OZDLYAV, p2)
+  m <- Tps(coordinates(train), train$OZDLYAV)
+  p3 <- predict(m, coordinates(test))
+  tpsrmse[i] <-  RMSE(test$OZDLYAV, p3)
+  w <- c(idwrmse[i], krigrmse[i], tpsrmse[i])
+  weights <- w / sum(w)
+  ensemble <- p1 * weights[1] + p2 * weights[2] + p3 * weights[3]
+  ensrmse[i] <-  RMSE(test$OZDLYAV, ensemble)
+}
+rmi <- mean(idwrmse)
+rmk <- mean(krigrmse)
+rmt <- mean(tpsrmse)
+rms <- c(rmi, rmt, rmk)
+rms
+## [1] 8.041305 8.307235 7.930799
+rme <- mean(ensrmse)
+rme
+## [1] 7.858051
+```
+
+```{r}
+weights <- ( rms / sum(rms) )
+s <- stack(idw, ok[[1]], tps)
+ensemble <- sum(s * weights)
+```
+
+```{r}
+s <- stack(idw, ok[[1]], tps, ensemble)
+names(s) <- c('IDW', 'OK', 'TPS', 'Ensemble')
+plot(s)
+```
+
