@@ -20,5 +20,9 @@
     <td width="15%"> 10.9.2020 </td>
     <td width="25%">  <a href="Lab/Lab1.md">Lab1</a> </td>
   </tr>
+  <tr>
+    <td width="15%"> 24.9.2020 </td>
+    <td width="25%">  <a href="Lab/Lab 2/Lab-2.md">Lab2</a> </td>
+  </tr>
   
 </table>
