@@ -6,18 +6,19 @@ output: html_document
 ---
 
 # Cargar la base de datos
-```{r}
+Se carga la base de datos sobre la lluvia en California. 
+```{r, echo=TRUE, hide=TRUE, cache= TRUE}
 if (!require("rspatial")) devtools::install_github('rspatial/rspatial')
 library(rspatial)
 d <- sp_data('precipitation')
 head(d)
 ```
-
-```{r}
+El gráfico muestra la cantidad de precipitación anual en los diversos puntos, según las estaciones.
+```{r, echo=TRUE, hide=TRUE, cache= TRUE}
 d$prec <- rowSums(d[, c(6:17)])
 plot(sort(d$prec), ylab='Annual precipitation (mm)', las=1, xlab='Stations')
 ```
-
+Se hace un mapa para ver su distribución en el mapa de California. 
 ```{r}
 library(sp)
 dsp <- SpatialPoints(d[,4:3], proj4string=CRS("+proj=longlat +datum=NAD83"))
@@ -30,6 +31,7 @@ blues <- colorRampPalette(c('yellow', 'orange', 'blue', 'dark blue'))
 pols <- list("sp.polygons", CA, fill = "lightgray")
 spplot(dsp, 'prec', cuts=cuts, col.regions=blues(5), sp.layout=pols, pch=20, cex=2)
 ```
+Se hacen compatibles los datos, y se hace la transformación en sp
 
 ```{r}
 TA <- CRS("+proj=aea +lat_1=34 +lat_2=40.5 +lat_0=0 +lon_0=-120 +x_0=0 +y_0=-4000000 +datum=NAD83 +units=m +ellps=GRS80 +towgs84=0,0,0")
@@ -37,7 +39,7 @@ library(rgdal)
 dta <- spTransform(dsp, TA)
 cata <- spTransform(CA, TA)
 ```
-
+Se crea la función para el cálculo del RMSEA. Se toma la media como el modelo nulo, y se interpolan los puntos que no existen con este modelo. 
 ```{r}
 RMSE <- function(observed, predicted) {
   sqrt(mean((predicted - observed)^2, na.rm=TRUE))
@@ -54,18 +56,19 @@ library(dismo)
 v <- voronoi(dta)
 plot(v)
 ```
-
+La figura anterior se limita a Califoria. En este caso se divide el espacil en polígonos
 ```{r}
 ca <- aggregate(cata)
 vca <- intersect(v, ca)
 spplot(vca, 'prec', col.regions=rev(get_col_regions()))
 ```
-
+y los podemos crear como un raster
 ```{r}
 r <- raster(cata, res=10000)
 vr <- rasterize(vca, r, 'prec')
 plot(vr)
 ```
+
 
 ```{r}
 set.seed(5132015)
@@ -84,6 +87,7 @@ mean(rmse)
 
 ```
 
+Acá usamos el método de la distancia ponderada inversa.
 ```{r}
 library(gstat)
 gs <- gstat(formula=prec~1, locations=dta, nmax=5, set=list(idp = 0))

@@ -1,0 +1,10 @@
+base
+sp
+raster
+rspatial
+rgdal
+dismo
+gstat
+dotCall64
+spam
+fields
