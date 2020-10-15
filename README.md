@@ -30,7 +30,7 @@
   </tr>
    <tr>
     <td width="15%"> 24.9.2020 </td>
-    <td width="25%">  <a href="Lab/Lab 3/Lab-2-final.md">Lab3</a> </td>
+    <td width="25%">  <a href="Lab/Lab 3/Lab-3-final.md">Lab3</a> </td>
   </tr>
   
 </table>
