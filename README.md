@@ -38,6 +38,6 @@
   </tr>
     <tr>
     <td width="15%"> 12.11.2020 </td>
-    <td width="25%">  <a href="Proyecto/Avance 3 -.pdf">Avance 3</a> </td>
+    <td width="25%">  <a href="Proyecto/Avance 3.pdf">Avance 3</a> </td>
   </tr>
 </table>
