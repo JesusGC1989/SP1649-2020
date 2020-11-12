@@ -32,5 +32,9 @@
     <td width="15%"> 15.10.2020 </td>
     <td width="25%">  <a href="Lab/Lab 3/Laboratorio-3-final.md">Lab3</a> </td>
   </tr>
+     <tr>
+    <td width="15%"> 15.10.2020 </td>
+    <td width="25%">  <a href="Lab/Lab 3/Lab5.md">Lab5</a> </td>
+  </tr>
   
 </table>
